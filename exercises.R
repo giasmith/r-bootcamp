@@ -29,7 +29,7 @@ loadedNamespaces() # Functions from loaded packages are not listed with `ls()`. 
 # The "ATOMS" of vectors are (a) logical, (b) integer, (c) double, (d) character, (e) complex, and not for everyday consumption (d) raw
 e1 <- c(TRUE, FALSE, FALSE, FALSE, NA) # Atomic vector of logical
 f1 <- c(1L, 3L, -9L, NA_integer_) # Atomic vector of integers
-g1 <- c(pi, pi/2, pi/3, pi/4, NA_real_, Inf, -Inf, NaN) # Atomic vector of double
+g1 <- c(4.0, 5L, pi, pi/2, pi/3, pi/4, NA_real_, Inf, -Inf, NaN) # Atomic vector of double
 h1 <- c("This","is","a","vector","of","strings", NA_character_)
 i1 <- c(3+4i, 7+8i, NA_complex_) # Vector of complex
 
@@ -37,6 +37,14 @@ i1 <- c(3+4i, 7+8i, NA_complex_) # Vector of complex
 # However, one can typically use `NA` and R will coerced it to the correct type of NA
 h1[1] <- NA 
 h1 # Even though we used `NA`, R insert NA_character_
+
+d1 %>%
+  mutate(newvar = case_when(
+    sbp < 100 ~ "Low BP"
+  , dbp < 80 ~ "Low DBP"
+  , sbp > 135 ~ "High BP"
+  , TRUE ~ NA_character_
+  ))
 
 # Arrays are multi-dimensional objects of a single type of atom
 # Matrices are 2-dimensional arrays
@@ -59,8 +67,30 @@ n1 <- c(function(x){x}, function(x){x+x^2}, function(x){x+x^x+x^3})
 str(n1)
 
 #-#-#-# Exercise: What are the following data structures?
+
+d1 %>%
+  mutate(sex2 = case_when(
+     sex == 1 ~ "Male"
+   , sex == 2 ~ "Female"
+   , TRUE ~ NA_character_
+  )) %>%
+  head %>% str
+
+o1 <- factor(d1$sex, 1:2, c("Male","Female"))
+d1 <- d1 %>%
+  mutate(sex2 = case_when(
+     sex == 1 ~ "Male"
+   , sex == 2 ~ "Female"
+   , TRUE ~ NA_character_
+  )) %>%
+  mutate(sex3 = factor(sex,1:2,c("Male","Female"))) %>%
+  mutate(sex4 = as.factor(sex2))
+
+str(o1)
+
 o1 <- factor(sample(1:3,100,TRUE), 1:3, c("Left","Right","Ambidextrous"))
 p1 <- array(o1, c(10,10))
+
 
 # A data.frame is a special type of list.  Each element is an atomic vector of the same length.
 str(d1)
@@ -75,6 +105,7 @@ is.list(d1)
 #     E. Loops  
 #     F. Apply  
 #     G. For others see http://adv-r.had.co.nz/Vocabulary.html
+
 
 ?read.csv
 ?data.table::fread # Suuuuuuuuper fast (for big .csv)
@@ -137,7 +168,7 @@ p1[rep(1,3), ]
 
 # Logicals
 f1
-f1[c(FALSE, FALSE, TRUE)]
+f1[c(TRUE, FALSE, TRUE, FALSE)]
 p1[c(FALSE, TRUE), c(FALSE, TRUE, TRUE)]  # What happens if the TRUE/FALSE vector is the wrong number of elements?
 
 j1
@@ -189,10 +220,12 @@ head(d1$age)
 #     E. Invisible return
 
 u1 <- function(a,b,c,d){
+  if(b==0) stop("NO! YOU CAN'T DIVIDE BY ZERO. B CANNOT BE 0")
     a/b+c/d
 }
 # What does `u1` return?
-u1(1,2,-8,3)
+u1(1,0,-8,3)
+u1(1,1,3,2)
 
 v1 <- function(a,b=2,c=1,d=99){
     a/b+c/d
@@ -202,12 +235,20 @@ v1(2,3,3,2)
 
 3 + 4 # This is a function
 `+`(3,4)
+
 # Two input functions are special
 `%u%` <- function(a,b){
     sqrt(a)/log(abs(b) + 1)
 }
+
 4 %u% 2
 3 %u% 2 %u% 8 %u% pi
+
+`%karolina%` <- function(a,b){
+    sqrt(a)/log(abs(b) + 1)
+}
+
+6 %karolina% 9
 
 1:10 %u% 11:20
 outer(1:4, -5:5, FUN = "%u%")
@@ -249,7 +290,7 @@ d1 %>%
   lm(sbp ~ dbp, data = .)  # Use the dot if the piped objects needs to go to an input other than the first
 
 d1 %>% 
-  split(.$sex) %>%  # Can use the input multiple times
+  split(.$sex2) %>%  # Can use the input multiple times
   lapply(function(x){x$age %>% mean})
 
 # New base R pipe
@@ -295,6 +336,12 @@ methods(class = class(a2))
 names(a2)
 a2[["coefficients"]]
 
+lm(sbp ~ dbp, data = d1) %>% 
+  summary %>% 
+  `[[`("r.squared")
+
+summary(lm(sbp ~ dbp, data = d1))[["r.squared"]]
+
 
 ?plot.ecdf
 ?stats:::plot.lm
@@ -308,11 +355,16 @@ plot.pig <- function(x, ...){
 c2 <- 3
 class(c2) <- "pig"
 plot(c2)
+plot(3)
 
 
 # Functions can be inputs
 apply(p1,2,FUN=table)
-lapply(d1,function(x){sum(is.na(x))})
+p2 <- array(rnorm(25),c(5,5))
+apply(p2,1,min)
+
+#d3 <- 
+#lapply(d1,function(x){sum(is.na(x))})
 
 d2 <- function(n, FUN = min, dist = "norm", ...){
     rf <- get(paste("r",dist, sep=""))
@@ -329,14 +381,14 @@ d2(1000, median, "exp", 4)
 
 # Step through inside the function
 d2 <- function(N, FUN = min, dist = "norm", ...){
-    browser()
+browser()
     rf <- get(paste("r",dist, sep=""))
     draws <- array(rf(N*1000, ...), dim = c(N,1000))
     sdist <- apply(draws,2, FUN)
     plot(density(sdist))
 }
 
-d2(10)
+d2(1000)
 
 
 
