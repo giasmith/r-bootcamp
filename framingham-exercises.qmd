@@ -1,0 +1,21 @@
+---
+title: "Framingham Study"
+format: html
+---
+
+```{r}
+require(tgsify)
+require(rms)
+d1 <- read.csv("http://hbiostat.org/data/repo/2.20.Framingham.csv") %>% 
+  mutate(sex = factor(sex, 1:2, c("Male","Female")))
+
+f1 <- log(scl) ~ rcs(age,4) + rcs(bmi,4) + sex + sex*rcs(age,4) + sex*rcs(bmi,4) + rcs(age,4)*rcs(bmi,4)
+m1 <- ols(f1, data = d1)
+str(m1)
+names(m1)
+m1$stats
+m1$Design
+m1$residuals
+
+
+```
