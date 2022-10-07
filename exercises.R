@@ -113,6 +113,7 @@ t1 <- c(j1, r1) # Combine lists
 #     A. index
 #     B. logicals
 #     C. names
+#     D. $ (for lists)
 
 e1
 e1[3]  # Index of a vector (returns a vector)
@@ -174,6 +175,10 @@ require(dplyr)
 d1  %>% 
   filter(age < 33)  %>% 
   select(bmi:id)
+
+# $
+j1$b
+head(d1$age)
 
 #####################
 # 5. Functions I ----  
@@ -263,6 +268,7 @@ d1 |>
 #     B. New generics  
 #     C. Functions of functions  
 #     D. Debugging  
+#     E. Namespace
 
 a2 <- d1 %>% 
   lm(sbp ~ dbp, data = .) 
@@ -283,6 +289,12 @@ class(b2)
 
 stats:::plot.lm
 plot.ecdf
+methods(plot)  # Note the *
+getAnywhere(plot.lm)
+methods(class = class(a2))
+names(a2)
+a2[["coefficients"]]
+
 
 ?plot.ecdf
 ?stats:::plot.lm
@@ -307,6 +319,7 @@ d2 <- function(n, FUN = min, dist = "norm", ...){
     draws <- array(rf(n*1000, ...), dim = c(n,1000))
     sdist <- apply(draws,2, FUN)
     plot(density(sdist))
+    hist(sdist, freq=FALSE, add=TRUE, breaks=50)
 }
 
 d2(100)
@@ -326,9 +339,18 @@ d2 <- function(N, FUN = min, dist = "norm", ...){
 d2(10)
 
 
-# 8. Plots  
+
+#########################
+# 8. Plots ----
 #     A. Base R graphics  
 #     B. ggplot2 graphics  
 #     C. Lattice graphics  
-# 9. Math operations
-# 10. How to get help
+
+#############################################
+#  9. Math operations and other commands ----
+#  http://adv-r.had.co.nz/Vocabulary.html
+
+
+# 10. Helpful packages
+#     A. data.table
+# 11. How to get help
