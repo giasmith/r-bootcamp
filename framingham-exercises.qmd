@@ -3,6 +3,8 @@ title: "Framingham Study"
 format: 
   html:
     self-contained: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
@@ -30,6 +32,15 @@ m1 <- ols(f1, data = d1, x = TRUE, y = TRUE)
 #str(m1)
 #names(m1)
 #m1$stats
+
+plot(m1$linear.predictors, m1$y, xlab = "Y hat")
+abline(0,1, lwd = 3, col = "red")
+
+lm0 <- lm(m1$y ~ m1$linear.predictors)
+abline(lm0, col = "blue", lwd = 3)
+l0 <- loess(m1$y ~ m1$linear.predictors)
+points(m1$linear.predictors, l0$fitted, col = "blue")
+
 
 optim_r2 <- function(m1, d1){
     idx <- sample(1:nrow(d1), nrow(d1), TRUE)
@@ -60,4 +71,7 @@ v1 %>%
   round(3) %>% 
   kable %>% 
   kable_styling(c("bordered"))
+
+c1 <- calibrate(m1, B=100)
+plot(c1)
 ```
