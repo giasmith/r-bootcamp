@@ -1,21 +1,77 @@
 ---
 title: "Framingham Study"
-format: html
+format: 
+  html:
+    self-contained: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
+#| include: false
+
 require(tgsify)
 require(rms)
+require(knitr)
+require(kableExtra)
+```
+
+```{r}
 d1 <- read.csv("http://hbiostat.org/data/repo/2.20.Framingham.csv") %>% 
   mutate(sex = factor(sex, 1:2, c("Male","Female")))
 
 f1 <- log(scl) ~ rcs(age,4) + rcs(bmi,4) + sex + sex*rcs(age,4) + sex*rcs(bmi,4) + rcs(age,4)*rcs(bmi,4)
-m1 <- ols(f1, data = d1)
-str(m1)
-names(m1)
-m1$stats
-m1$Design
-m1$residuals
+
+d2 <- d1 %>% 
+select(all.vars(f1)) %>% 
+complete.cases()
+
+d3 <- d1[d2,]
+
+m1 <- ols(f1, data = d1, x = TRUE, y = TRUE)
+#str(m1)
+#names(m1)
+#m1$stats
+
+plot(m1$linear.predictors, m1$y, xlab = "Y hat")
+abline(0,1, lwd = 3, col = "red")
+
+lm0 <- lm(m1$y ~ m1$linear.predictors)
+abline(lm0, col = "blue", lwd = 3)
+l0 <- loess(m1$y ~ m1$linear.predictors)
+points(m1$linear.predictors, l0$fitted, col = "blue")
 
 
+optim_r2 <- function(m1, d1){
+    idx <- sample(1:nrow(d1), nrow(d1), TRUE)
+    m2 <- update(m1, data = d1[idx,])
+    r2_b <- m2$stats["R2"]
+    yhat <- predict(m2, newdata = d1)
+    r2_o <- cor(yhat, model.frame(m1$terms, data = d1)[,1], use="complete")^2
+    r2_b - r2_o
+}
+
+o1 <- replicate(100, optim_r2(m1,d3)) %>% 
+  mean
+data.frame(
+    `R-square` = m1$stats["R2"]
+  , Optimism = o1
+  , `Adjusted R-square` = m1$stats["R2"] - o1
+  , check.names = FALSE
+) %>% 
+  round(3) %>% 
+  kable %>% 
+  kable_styling(c("bordered"))
+
+
+
+v1 <- validate(m1,B=100)
+v1 %>% 
+  unclass %>% 
+  round(3) %>% 
+  kable %>% 
+  kable_styling(c("bordered"))
+
+c1 <- calibrate(m1, B=100)
+plot(c1)
 ```
